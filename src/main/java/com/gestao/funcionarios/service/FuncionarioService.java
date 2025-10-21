@@ -45,7 +45,6 @@ public class FuncionarioService {
 
     @Transactional
     public FuncionarioResponseDTO create(FuncionarioRequestDTO request) {
-        // Verifica se email já existe
         if (repository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email já cadastrado");
         }
@@ -71,12 +70,10 @@ public class FuncionarioService {
             throw new RuntimeException("Funcionário inativo não pode ser editado");
         }
 
-        // Verifica se email já existe em outro funcionário
         if (repository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new RuntimeException("Email já cadastrado em outro funcionário");
         }
 
-        // Verifica se salário não foi reduzido
         if (request.getSalario().compareTo(funcionario.getSalario()) < 0) {
             throw new RuntimeException("Salário não pode ser reduzido");
         }
