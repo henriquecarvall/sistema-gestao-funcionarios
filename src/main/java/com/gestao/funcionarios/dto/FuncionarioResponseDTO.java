@@ -11,14 +11,14 @@ public class FuncionarioResponseDTO {
     private BigDecimal salario;
     private LocalDate dataAdmissao;
     private Boolean ativo;
+    private DepartamentoResponseDTO departamento;
 
-    // Construtor padrão
     public FuncionarioResponseDTO() {
     }
 
-    // Construtor com parâmetros (ADICIONAR ESTE)
     public FuncionarioResponseDTO(Long id, String nome, String email, String cargo,
-                                  BigDecimal salario, LocalDate dataAdmissao, Boolean ativo) {
+                                  BigDecimal salario, LocalDate dataAdmissao, Boolean ativo,
+                                  DepartamentoResponseDTO departamento) {
         this.id = id;
         this.nome = nome;
         this.email = email;
@@ -26,9 +26,9 @@ public class FuncionarioResponseDTO {
         this.salario = salario;
         this.dataAdmissao = dataAdmissao;
         this.ativo = ativo;
+        this.departamento = departamento;
     }
 
-    // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNome() { return nome; }
@@ -43,4 +43,6 @@ public class FuncionarioResponseDTO {
     public void setDataAdmissao(LocalDate dataAdmissao) { this.dataAdmissao = dataAdmissao; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public DepartamentoResponseDTO getDepartamento() { return departamento; }
+    public void setDepartamento(DepartamentoResponseDTO departamento) { this.departamento = departamento; }
 }

@@ -40,21 +40,24 @@ public class Funcionario {
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    // Construtor padrão (obrigatório para JPA)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "departamento_id")
+    private Departamento departamento;
+
     public Funcionario() {
     }
 
-    // Construtor com parâmetros
-    public Funcionario(String nome, String email, String cargo, BigDecimal salario, LocalDate dataAdmissao) {
+    public Funcionario(String nome, String email, String cargo, BigDecimal salario,
+                       LocalDate dataAdmissao, Departamento departamento) {
         this.nome = nome;
         this.email = email;
         this.cargo = cargo;
         this.salario = salario;
         this.dataAdmissao = dataAdmissao;
         this.ativo = true;
+        this.departamento = departamento;
     }
 
-    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -111,7 +114,14 @@ public class Funcionario {
         this.ativo = ativo;
     }
 
-    // toString para debug
+    public Departamento getDepartamento() {
+        return departamento;
+    }
+
+    public void setDepartamento(Departamento departamento) {
+        this.departamento = departamento;
+    }
+
     @Override
     public String toString() {
         return "Funcionario{" +
@@ -122,6 +132,7 @@ public class Funcionario {
                 ", salario=" + salario +
                 ", dataAdmissao=" + dataAdmissao +
                 ", ativo=" + ativo +
+                ", departamento=" + departamento +
                 '}';
     }
 }

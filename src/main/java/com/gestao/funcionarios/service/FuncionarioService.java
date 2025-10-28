@@ -2,102 +2,134 @@ package com.gestao.funcionarios.service;
 
 import com.gestao.funcionarios.dto.FuncionarioRequestDTO;
 import com.gestao.funcionarios.dto.FuncionarioResponseDTO;
+import com.gestao.funcionarios.dto.DepartamentoResponseDTO;
+import com.gestao.funcionarios.model.Departamento;
 import com.gestao.funcionarios.model.Funcionario;
+import com.gestao.funcionarios.repository.DepartamentoRepository;
 import com.gestao.funcionarios.repository.FuncionarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class FuncionarioService {
 
     @Autowired
-    private FuncionarioRepository repository;
+    private FuncionarioRepository funcionarioRepository;
+
+    @Autowired
+    private DepartamentoRepository departamentoRepository;
 
     public List<FuncionarioResponseDTO> findAll() {
-        return repository.findAllByOrderByNomeAsc()
-                .stream()
+        return funcionarioRepository.findAll().stream()
                 .map(this::toResponseDTO)
-                .toList();
-    }
-
-    public Optional<FuncionarioResponseDTO> findById(Long id) {
-        return repository.findById(id).map(this::toResponseDTO);
-    }
-
-    public List<FuncionarioResponseDTO> findByCargo(String cargo) {
-        return repository.findByCargo(cargo)
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<FuncionarioResponseDTO> findByAtivo(Boolean ativo) {
-        return repository.findByAtivoOrderByNomeAsc(ativo)
-                .stream()
+        return funcionarioRepository.findByAtivo(ativo).stream()
                 .map(this::toResponseDTO)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    @Transactional
-    public FuncionarioResponseDTO create(FuncionarioRequestDTO request) {
-        if (repository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email já cadastrado");
+    public List<FuncionarioResponseDTO> findByCargo(String cargo) {
+        return funcionarioRepository.findByCargo(cargo).stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<FuncionarioResponseDTO> findById(Long id) {
+        return funcionarioRepository.findById(id)
+                .map(this::toResponseDTO);
+    }
+
+    public FuncionarioResponseDTO create(FuncionarioRequestDTO requestDTO) {
+        if (requestDTO.getDepartamentoId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Departamento é obrigatório");
+        }
+
+        Departamento departamento = departamentoRepository.findById(requestDTO.getDepartamentoId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
+
+        if (!departamento.getAtivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível vincular funcionário a departamento inativo");
+        }
+
+        if (funcionarioRepository.existsByEmail(requestDTO.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe um funcionário com este email");
         }
 
         Funcionario funcionario = new Funcionario();
-        funcionario.setNome(request.getNome().trim());
-        funcionario.setEmail(request.getEmail().toLowerCase());
-        funcionario.setCargo(request.getCargo().trim());
-        funcionario.setSalario(request.getSalario());
-        funcionario.setDataAdmissao(request.getDataAdmissao());
+        funcionario.setNome(requestDTO.getNome());
+        funcionario.setEmail(requestDTO.getEmail());
+        funcionario.setCargo(requestDTO.getCargo());
+        funcionario.setSalario(requestDTO.getSalario());
+        funcionario.setDataAdmissao(requestDTO.getDataAdmissao());
         funcionario.setAtivo(true);
+        funcionario.setDepartamento(departamento);
 
-        Funcionario saved = repository.save(funcionario);
+        Funcionario saved = funcionarioRepository.save(funcionario);
         return toResponseDTO(saved);
     }
 
-    @Transactional
-    public FuncionarioResponseDTO update(Long id, FuncionarioRequestDTO request) {
-        Funcionario funcionario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Funcionário não encontrado"));
+    public FuncionarioResponseDTO update(Long id, FuncionarioRequestDTO requestDTO) {
+        Funcionario funcionarioExistente = funcionarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado"));
 
-        if (!funcionario.getAtivo()) {
-            throw new RuntimeException("Funcionário inativo não pode ser editado");
+        if (requestDTO.getDepartamentoId() != null) {
+            Departamento departamento = departamentoRepository.findById(requestDTO.getDepartamentoId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
+
+            if (!departamento.getAtivo()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível vincular funcionário a departamento inativo");
+            }
+            funcionarioExistente.setDepartamento(departamento);
         }
 
-        if (repository.existsByEmailAndIdNot(request.getEmail(), id)) {
-            throw new RuntimeException("Email já cadastrado em outro funcionário");
+        if (funcionarioRepository.existsByEmailAndIdNot(requestDTO.getEmail(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe outro funcionário com este email");
         }
 
-        if (request.getSalario().compareTo(funcionario.getSalario()) < 0) {
-            throw new RuntimeException("Salário não pode ser reduzido");
-        }
+        funcionarioExistente.setNome(requestDTO.getNome());
+        funcionarioExistente.setEmail(requestDTO.getEmail());
+        funcionarioExistente.setCargo(requestDTO.getCargo());
+        funcionarioExistente.setSalario(requestDTO.getSalario());
+        funcionarioExistente.setDataAdmissao(requestDTO.getDataAdmissao());
 
-        funcionario.setNome(request.getNome().trim());
-        funcionario.setEmail(request.getEmail().toLowerCase());
-        funcionario.setCargo(request.getCargo().trim());
-        funcionario.setSalario(request.getSalario());
-        funcionario.setDataAdmissao(request.getDataAdmissao());
-
-        Funcionario updated = repository.save(funcionario);
+        Funcionario updated = funcionarioRepository.save(funcionarioExistente);
         return toResponseDTO(updated);
     }
 
-    @Transactional
     public void inactivate(Long id) {
-        Funcionario funcionario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Funcionário não encontrado"));
+        Funcionario funcionario = funcionarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado"));
 
         funcionario.setAtivo(false);
-        repository.save(funcionario);
+        funcionarioRepository.save(funcionario);
+    }
+
+    public void delete(Long id) {
+        if (!funcionarioRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado");
+        }
+        funcionarioRepository.deleteById(id);
     }
 
     private FuncionarioResponseDTO toResponseDTO(Funcionario funcionario) {
+        DepartamentoResponseDTO departamentoDTO = null;
+        if (funcionario.getDepartamento() != null) {
+            departamentoDTO = new DepartamentoResponseDTO(
+                    funcionario.getDepartamento().getId(),
+                    funcionario.getDepartamento().getNome(),
+                    funcionario.getDepartamento().getSigla(),
+                    funcionario.getDepartamento().getAtivo()
+            );
+        }
+
         return new FuncionarioResponseDTO(
                 funcionario.getId(),
                 funcionario.getNome(),
@@ -105,7 +137,8 @@ public class FuncionarioService {
                 funcionario.getCargo(),
                 funcionario.getSalario(),
                 funcionario.getDataAdmissao(),
-                funcionario.getAtivo()
+                funcionario.getAtivo(),
+                departamentoDTO
         );
     }
 }

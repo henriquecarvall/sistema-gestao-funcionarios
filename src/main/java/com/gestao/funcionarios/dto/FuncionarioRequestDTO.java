@@ -25,20 +25,22 @@ public class FuncionarioRequestDTO {
     @PastOrPresent(message = "Data de admissão não pode ser futura")
     private LocalDate dataAdmissao;
 
-    // Construtor padrão
+    @NotNull(message = "Departamento é obrigatório")
+    private Long departamentoId;
+
     public FuncionarioRequestDTO() {
     }
 
-    // Construtor com parâmetros
-    public FuncionarioRequestDTO(String nome, String email, String cargo, BigDecimal salario, LocalDate dataAdmissao) {
+    public FuncionarioRequestDTO(String nome, String email, String cargo, BigDecimal salario,
+                                 LocalDate dataAdmissao, Long departamentoId) {
         this.nome = nome;
         this.email = email;
         this.cargo = cargo;
         this.salario = salario;
         this.dataAdmissao = dataAdmissao;
+        this.departamentoId = departamentoId;
     }
 
-    // Getters e Setters
     public String getNome() {
         return nome;
     }
@@ -77,5 +79,13 @@ public class FuncionarioRequestDTO {
 
     public void setDataAdmissao(LocalDate dataAdmissao) {
         this.dataAdmissao = dataAdmissao;
+    }
+
+    public Long getDepartamentoId() {
+        return departamentoId;
+    }
+
+    public void setDepartamentoId(Long departamentoId) {
+        this.departamentoId = departamentoId;
     }
 }
